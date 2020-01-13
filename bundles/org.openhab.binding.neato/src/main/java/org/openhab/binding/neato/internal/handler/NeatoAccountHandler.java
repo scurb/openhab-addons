@@ -21,6 +21,7 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Random;
 
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.smarthome.core.thing.Bridge;
@@ -92,12 +93,20 @@ public class NeatoAccountHandler extends BaseBridgeHandler {
 
         return new ArrayList<Robot>();
     }
-
+    protected String getTokenString() {
+        String hexChars = "abcdef01234567890";        
+        StringBuilder tokenStrBuilder = new StringBuilder();
+        Random rnd = new Random();
+        while (tokenStrBuilder.length() < 128) {
+            int hexCharsIndexRnd = (int) (rnd.nextFloat() * hexChars.length());
+            tokenStrBuilder.append(hexChars.charAt(hexCharsIndexRnd));
+        }
+        return tokenStrBuilder.toString();
+    }
     private String authenticate(String username, String password) {
         Gson gson = new Gson();
 
-        AuthRequest req = new AuthRequest(username, password, "ios",
-                new BigInteger(130, new SecureRandom()).toString(64));
+        AuthRequest req = new AuthRequest(username, password, "ios", getTokenString());
 
         String authenticationResponse = "";
         try {
@@ -106,9 +115,10 @@ public class NeatoAccountHandler extends BaseBridgeHandler {
             logger.debug("Error when sending Authentication request to Neato.", e);
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
                     "Error when sending Authentication request to Neato.");
-        }
+        }        
 
         BeehiveAuthentication authenticationObject = gson.fromJson(authenticationResponse, BeehiveAuthentication.class);
+        
         return authenticationObject.getAccessToken();
     }
 
